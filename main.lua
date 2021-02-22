@@ -66,7 +66,8 @@ function love.load()
         ['paddles'] = GenerateQuadsPaddles(gTextures['main']),
         ['balls'] = GenerateQuadsBalls(gTextures['main']),
         ['bricks'] = GenerateQuadsBricks(gTextures['main']),
-        ['hearts'] = GenerateQuads(gTextures['hearts'], 10, 9)
+        ['hearts'] = GenerateQuads(gTextures['hearts'], 10, 9),
+        ['powerup'] = love.graphics.newQuad(128, 192, 16, 16, gTextures['main']:getDimensions())
     }
     
     -- initialize our virtual resolution, which will be rendered within our
@@ -195,6 +196,7 @@ function love.draw()
     local backgroundWidth = gTextures['background']:getWidth()
     local backgroundHeight = gTextures['background']:getHeight()
 
+
     love.graphics.draw(gTextures['background'], 
         -- draw at coordinates 0, 0
         0, 0, 
@@ -206,6 +208,7 @@ function love.draw()
     -- use the state machine to defer rendering to the current state we're in
     gStateMachine:render()
     
+
     -- display FPS for debugging; simply comment out to remove
     displayFPS()
     
