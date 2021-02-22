@@ -26,6 +26,9 @@ function ServeState:enter(params)
     self.level = params.level
     self.recoverPoints = params.recoverPoints
 
+    -- passes paddle.size in states to regain the size from previous states
+    self.paddle.size = params.paddleSize or 2
+
     -- init new ball (random color for fun)
     self.ball = Ball()
     self.ball.skin = math.random(7)
@@ -41,6 +44,7 @@ function ServeState:update(dt)
         -- pass in all important state info to the PlayState
         gStateMachine:change('play', {
             paddle = self.paddle,
+            paddleSize = self.paddle.size,
             bricks = self.bricks,
             health = self.health,
             score = self.score,

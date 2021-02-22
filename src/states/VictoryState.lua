@@ -18,6 +18,7 @@ function VictoryState:enter(params)
     self.score = params.score
     self.highScores = params.highScores
     self.paddle = params.paddle
+    self.paddle.size = params.paddleSize
     self.health = params.health
     self.ball = params.ball
     self.recoverPoints = params.recoverPoints
@@ -36,6 +37,7 @@ function VictoryState:update(dt)
             level = self.level + 1,
             bricks = LevelMaker.createMap(self.level + 1),
             paddle = self.paddle,
+            paddleSize = self.paddle.size,
             health = self.health,
             score = self.score,
             highScores = self.highScores,

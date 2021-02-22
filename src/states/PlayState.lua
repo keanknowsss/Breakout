@@ -35,6 +35,13 @@ function PlayState:enter(params)
     self.ball1.dx = math.random(-200, 200)
     self.ball1.dy = math.random(-50, -60)
 
+    -- variables for variable size, and width (for the collisions)
+    self.paddle.size = params.paddleSize
+    self.paddle.width = 64
+    -- variable for self size multiplier
+    self.sizeUpgrader = self.score + 1000
+
+
 
     -- initializes the variable for the coordinates of the second ball
     -- since at the start we do not have powerup, they will be initialized first at (0,0)
@@ -48,6 +55,7 @@ end
 
 
 function PlayState:init()
+
     -- initializes all variables for the second and third ball
     -- instantiate powerup class
     self.powerup = Powerup()
@@ -102,20 +110,18 @@ function PlayState:update(dt)
         return
     end
 
-    print('x: '.. self.powerup.x, 'y: '..self.powerup.y)
-
     -- update positions based on velocity
     self.paddle:update(dt)
 
     if self.powerupDraw then
         self.powerup:update(dt)
     end
-
     -- resets the value of the powerup when it fell at the bottom of the screen
     if self.powerup.y >= VIRTUAL_HEIGHT + 16 then
         self.powerup.y = 0
         self.powerup.x = 0
         self.powerup.powered = false
+        self.powerupDraw = false
     end
 
     -- gets the collision of the powerup and the paddle
@@ -193,6 +199,9 @@ function PlayState:update(dt)
         -- if ball goes below bounds, revert to serve state and decrease health
             if self.ball1.y >= VIRTUAL_HEIGHT + 16 then
                 self.health = self.health - 1
+
+                -- decreases size, and smallest must be at 1
+                self.paddle.size = math.max(1, self.paddle.size - 1)
                 gSounds['hurt']:play()
             
                 if self.health == 0 then
@@ -203,6 +212,7 @@ function PlayState:update(dt)
                 else
                     gStateMachine:change('serve', {
                         paddle = self.paddle,
+                        paddleSize = self.paddle.size,
                         bricks = self.bricks,
                         health = self.health,
                         score = self.score,
@@ -221,6 +231,9 @@ function PlayState:update(dt)
             -- if ball goes below bounds, revert to serve state and decrease health
             if self.ball2.y >= VIRTUAL_HEIGHT + 16 then
                 self.health = self.health - 1
+
+                -- decreases size, and smallest must be at 1
+                self.paddle.size = math.max(1, self.paddle.size - 1)
                 gSounds['hurt']:play()
             
                 if self.health == 0 then
@@ -231,6 +244,7 @@ function PlayState:update(dt)
                 else
                     gStateMachine:change('serve', {
                         paddle = self.paddle,
+                        paddleSize = self.paddle.size,
                         bricks = self.bricks,
                         health = self.health,
                         score = self.score,
@@ -249,6 +263,9 @@ function PlayState:update(dt)
             -- if ball goes below bounds, revert to serve state and decrease health
             if self.ball3.y >= VIRTUAL_HEIGHT + 16 then
                 self.health = self.health - 1
+
+                -- decreases size, and smallest must be at 1
+                self.paddle.size = math.max(1, self.paddle.size - 1)
                 gSounds['hurt']:play()
             
                 if self.health == 0 then
@@ -259,6 +276,7 @@ function PlayState:update(dt)
                 else
                     gStateMachine:change('serve', {
                         paddle = self.paddle,
+                        paddleSize = self.paddle.size,
                         bricks = self.bricks,
                         health = self.health,
                         score = self.score,
@@ -274,6 +292,25 @@ function PlayState:update(dt)
     -- sets the current ball's variable using the self.mainBall for the arguments and conditions
     self:countBalls()
 
+
+    -- argument for the paddle size upgrade and degrade
+    -- increases in size per score (the reference also increases overtime) and limits at the size of 4
+    if self.score > self.sizeUpgrader then
+        self.paddle.size = math.min(4, self.paddle.size + 1)
+        self.sizeUpgrader = self.sizeUpgrader + self.sizeUpgrader * 1.25
+
+ 
+    end
+
+    if self.paddle.size == 1 then
+        self.paddle.width = 32
+    elseif self.paddle.size == 2 then
+        self.paddle.width = 64 
+    elseif self.paddle.size == 3 then
+        self.paddle.width = 96
+    else
+        self.paddle.width = 128
+    end
 
     -- for rendering particle systems
     for k, brick in pairs(self.bricks) do
@@ -468,6 +505,7 @@ function PlayState:bricksCollision()
                 gStateMachine:change('victory', {
                     level = self.level,
                     paddle = self.paddle,
+                    paddleSize = self.paddle.size,
                     health = self.health,
                     score = self.score,
                     highScores = self.highScores,
@@ -559,6 +597,7 @@ function PlayState:bricksCollision()
                 gStateMachine:change('victory', {
                     level = self.level,
                     paddle = self.paddle,
+                    paddleSize = self.paddle.size,
                     health = self.health,
                     score = self.score,
                     highScores = self.highScores,
@@ -654,6 +693,7 @@ function PlayState:bricksCollision()
                 gStateMachine:change('victory', {
                     level = self.level,
                     paddle = self.paddle,
+                    paddleSize = self.paddle.size,
                     health = self.health,
                     score = self.score,
                     highScores = self.highScores,
@@ -717,6 +757,7 @@ function PlayState:gameOver()
     -- when all balls fall
     if self.ball1.y >= VIRTUAL_HEIGHT and self.ball2.y >= VIRTUAL_HEIGHT and self.ball3.y >= VIRTUAL_HEIGHT then
         self.health = self.health - 1
+        self.paddle.size = math.max(1, self.paddle.size - 1)
         gSounds['hurt']:play()
 
         if self.health == 0 then
