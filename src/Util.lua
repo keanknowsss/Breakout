@@ -55,7 +55,12 @@ end
     we have to return a subset of GenerateQuads.
 ]]
 function GenerateQuadsBricks(atlas)
-    return table.slice(GenerateQuads(atlas, 32, 16), 1, 21)
+    local bricks = table.slice(GenerateQuads(atlas, 32, 16), 1, 21)
+        
+    -- adds the additional locked block to the table of bricks
+    table.insert(bricks, love.graphics.newQuad(160, 48, 32, 16, gTextures['main']:getDimensions()))
+    
+    return bricks
 end
 
 --[[

@@ -51,6 +51,11 @@ function PlayState:enter(params)
     -- initializes the variable for the coordinates of the third ball
     self.ball3.x = 0
     self.ball3.y = 0
+
+    -- initialized bricks as locked if there are locked ones
+    for k, brick in pairs(self.bricks) do
+        brick.lockedOpen = false
+    end
 end
 
 
@@ -59,8 +64,7 @@ function PlayState:init()
     -- initializes all variables for the second and third ball
     -- instantiate powerup class
     self.powerup = Powerup()
-    self.powerup.x = 0
-    self.powerup.y = 0
+    self.powerup.y = -16
 
     -- draws the powerup icon when activated
     self.powerupIcon = Powerup()
@@ -68,6 +72,13 @@ function PlayState:init()
     self.powerupIcon.y = 2
     self.powerupIcon.scaleX = 0.75
     self.powerupIcon.scaleY = 0.75
+
+    -- draws the key icon on top of the screen when activated
+    self.keyIcon = Key()
+    self.keyIcon.x = VIRTUAL_WIDTH / 2 + 95
+    self.keyIcon.y = 2
+    self.keyIcon.scaleX = 0.75
+    self.keyIcon.scaleY = 0.75
 
 
     -- has a state checker whether to draw the powerup icon
@@ -94,7 +105,21 @@ function PlayState:init()
     -- will be used to activate the powerup even if its a different ball from the original
     self.mainBall = 1
 
+    -- initializes the key block
+    self.key = Key()
+
+    -- its x varies, and will be changed in the update function
+    self.key.x = math.random(VIRTUAL_WIDTH - 16)            
+    self.key.y = -16
+
+    -- set not active at the start
+    self.key.keyed = false
+    self.keyActive = false
+ 
+
 end
+
+
 
 function PlayState:update(dt)
     if self.paused then
@@ -110,7 +135,6 @@ function PlayState:update(dt)
         return
     end
 
-    -- update positions based on velocity
     self.paddle:update(dt)
 
     if self.powerupDraw then
@@ -118,16 +142,15 @@ function PlayState:update(dt)
     end
     -- resets the value of the powerup when it fell at the bottom of the screen
     if self.powerup.y >= VIRTUAL_HEIGHT + 16 then
-        self.powerup.y = 0
+        self.powerup.y = -16
         self.powerup.x = 0
-        self.powerup.powered = false
         self.powerupDraw = false
     end
 
     -- gets the collision of the powerup and the paddle
     -- will activate powerup 
     if self.powerup:collides(self.paddle) then
-        self.powerup.y = 0
+        self.powerup.y = -16
         self.powerup.x = 0
 
         -- activates the powerup if it is set to false
@@ -166,14 +189,11 @@ function PlayState:update(dt)
                 self.ball1.y, self.ball2.y = self.ball3.y, self.ball3.y
 
             end
-        else
-            -- act as bonus points when already powered up
-            self.score = self.score + 200
         end
-
+        
         -- sets the powerup, and draw to true
-        self.powerup.powered = true
         self.powerupDraw = false
+        self.powerup.powered = true
     end
 
     -- the condition for when the powerup is active
@@ -186,7 +206,6 @@ function PlayState:update(dt)
         self:paddleCollision()
         self:bricksCollision()
         self:gameOver()
-
     -- when the game is not in powerup mode 
     -- updates are only done to the current ball remaining on the screen
     else
@@ -298,8 +317,6 @@ function PlayState:update(dt)
     if self.score > self.sizeUpgrader then
         self.paddle.size = math.min(4, self.paddle.size + 1)
         self.sizeUpgrader = self.sizeUpgrader + self.sizeUpgrader * 1.25
-
- 
     end
 
     if self.paddle.size == 1 then
@@ -315,7 +332,47 @@ function PlayState:update(dt)
     -- for rendering particle systems
     for k, brick in pairs(self.bricks) do
         brick:update(dt)
+
+        -- check if a locked brick is open
+        if brick.locked then
+            if brick.lockOpen then
+                self.keyed = false
+            else
+                self.keyed = true
+            end
+        end
+
     end
+
+    -- when key is not nil 
+    if self.key then
+
+        -- key only updates when the key is not yet activated
+        if self.keyed then
+
+            if not self.keyActive then
+                self.key:update(dt)
+    
+                if self.key.y > VIRTUAL_HEIGHT + 16 then
+                    self.key:reset()   
+                end
+            else
+                self.key:reset()
+            end
+        end  
+        
+        -- the coordinates are reset when key is active
+        if self.key:collides(self.paddle) then
+            self.keyActive = true
+            self.key:reset()
+        end
+    end
+
+    -- if there is no locked block anymore then key is set to nil
+    if not self:checkKey() then
+        self.key = nil
+    end
+
 
     if love.keyboard.wasPressed('escape') then
         love.event.quit()
@@ -328,6 +385,10 @@ function PlayState:render()
     -- render bricks
     for k, brick in pairs(self.bricks) do
         brick:render()
+    end
+
+    if self.keyed and self.key then
+        self.key:render()
     end
 
     -- render all particle systems
@@ -347,11 +408,33 @@ function PlayState:render()
 
     -- draws the powerup icon when powered 
     if self.powerup.powered then
-        love.graphics.setColor(0/255, 255/255, 0/255, 200/255)
+        love.graphics.setColor(0, 1, 0, 1)
+        self.powerupIcon.x = VIRTUAL_WIDTH / 2 + 95
         self.powerupIcon:render()
-        love.graphics.setColor(1,1,1,1)
-    end
 
+        -- draw key icon alongside the powerup icon when active
+        if self.keyActive then
+            self.keyIcon.x = VIRTUAL_WIDTH / 2 + 78
+            self.keyIcon:render()
+        end
+
+        love.graphics.setColor(1,1,1,1)
+
+    -- draws the key icon when active
+    elseif self.keyActive then
+        love.graphics.setColor(0, 1, 0, 1)
+        self.keyIcon.x = VIRTUAL_WIDTH / 2 + 95
+        self.keyIcon:render()
+
+        -- draw powerup icon alongside the key icon when active
+        if self.powerup.powered then
+            self.powerupIcon.x = VIRTUAL_WIDTH / 2 + 78
+            self.powerupIcon:render()
+        end
+
+        love.graphics.setColor(1,1,1,1)
+
+    end
     -- renders the current ball only when not powered up
     -- if powered then render the other balls
     if self.mainBall == 1 then
@@ -473,15 +556,31 @@ function PlayState:bricksCollision()
         -- CONDITION FOR THE FIRST BALL'S COLLISION
         if brick.inPlay and self.ball1:collides(brick) then
 
+
             -- whenever the ball hit a high color or a tier from 2 to 5, or reaches a score divisible by 2000, or by chance function
-            if (not self.score == 0 and self.score % 2000 == 0) or brick.color == 5 or brick.tier == math.random(2,5) or self:chance() then
-                self.powerupDraw = true
-                self.powerup.x = brick.x + math.random(brick.width/2, brick.width) - 16
-                self.powerup.y = brick.y + brick.height
+            if (not self.score == 0 and self.score % 2000 == 0) or brick.color == math.random(4,5) or brick.tier == math.random(2,5) or self:chance() and (not brick.locked or self.keyActive) then
+                if not self.powerup.powered then
+                    self.powerupDraw = true
+                    self.powerup.x = brick.x + math.random(brick.width/2, brick.width) - 16
+                    self.powerup.y = brick.y + brick.height                    
+                end
             end
         
+            -- unlocks the locked block
+            if self.keyActive then
+                brick.lockedOpen = true
+            end
             -- add to score
-            self.score = self.score + (brick.tier * 200 + brick.color * 25)
+            -- scoring is different to a locked block
+            if brick.locked then
+                if brick.lockedOpen then
+                    self.score = self.score + 1000
+                    self.keyActive = false
+                end
+
+            else
+                self.score = self.score + (brick.tier * 200 + brick.color * 25)
+            end
         
             -- trigger the brick's hit function, which removes it from play
             brick:hit()
@@ -566,14 +665,28 @@ function PlayState:bricksCollision()
         if brick.inPlay and self.ball2:collides(brick) then
 
             -- whenever the ball hit a high color or a tier from 2 to 5, or reaches a score divisible by 2000, or by chance function
-            if (not self.score == 0 and self.score % 2000 == 0) or brick.color == 5 or brick.tier == math.random(2,5) or self:chance() then
-                self.powerupDraw = true
-                self.powerup.x = brick.x + math.random(brick.width/2, brick.width) - 16
-                self.powerup.y = brick.y + brick.height
+            if (not self.score == 0 and self.score % 2000 == 0) or brick.color == 5 or brick.tier == math.random(2,5) or self:chance() and (not brick.locked or self.keyActive) then
+                if not self.powerup.powered then
+                    self.powerupDraw = true
+                    self.powerup.x = brick.x + math.random(brick.width/2, brick.width) - 16
+                    self.powerup.y = brick.y + brick.height                    
+                end
             end
+            -- unlocks the locked block
+            if self.keyActive then
+                brick.lockedOpen = true
+            end
+            -- add to score    
+            -- scoring is different to a locked block
+            if brick.locked then
+                if brick.lockedOpen then
+                    self.score = self.score + 1000
+                    self.keyActive = false
+                end
 
-            -- add to score
-            self.score = self.score + (brick.tier * 200 + brick.color * 25)
+            else
+                self.score = self.score + (brick.tier * 200 + brick.color * 25)
+            end
 
             -- trigger the brick's hit function, which removes it from play
             brick:hit()
@@ -661,15 +774,28 @@ function PlayState:bricksCollision()
         if brick.inPlay and self.ball3:collides(brick) then
 
             -- whenever the ball hit a high color or a tier from 2 to 5, or reaches a score divisible by 2000, or by chance function
-            if (not self.score == 0 and self.score % 2000 == 0) or brick.color == 5 or brick.tier == math.random(2,5) or self:chance() then
-
-                self.powerupDraw = true
-                self.powerup.x = brick.x + math.random(brick.width/2, brick.width) - 16
-                self.powerup.y = brick.y + brick.height
+            if (not self.score == 0 and self.score % 2000 == 0) or brick.color == 5 or brick.tier == math.random(2,5) or self:chance() and (not brick.locked or self.keyActive) then
+                if not self.powerup.powered then
+                    self.powerupDraw = true
+                    self.powerup.x = brick.x + math.random(brick.width/2, brick.width) - 16
+                    self.powerup.y = brick.y + brick.height                    
+                end
             end
-
+            -- unlocks the locked block
+            if self.keyActive then
+                brick.lockedOpen = true
+            end
             -- add to score
-            self.score = self.score + (brick.tier * 200 + brick.color * 25)
+            -- scoring is different to a locked block
+            if brick.locked then
+                if brick.lockedOpen then
+                    self.score = self.score + 1000
+                    self.keyActive = false
+                end
+
+            else
+                self.score = self.score + (brick.tier * 200 + brick.color * 25)
+            end
 
             -- trigger the brick's hit function, which removes it from play
             brick:hit()
@@ -812,6 +938,18 @@ function PlayState:chance()
                     return true
                 end
             end
+        end
+    end
+
+    return false
+end
+
+
+-- checks if there are locked bricks remaining
+function PlayState:checkKey()
+    for k, brick in pairs(self.bricks) do
+        if brick.locked and brick.inPlay then
+            return true
         end
     end
 

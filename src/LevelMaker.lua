@@ -33,6 +33,12 @@ LevelMaker = Class{}
 function LevelMaker.createMap(level)
     local bricks = {}
 
+    -- maximum number of locked blocks per level
+    local lockBlocks = 0
+
+    -- counts the current number of locked blocks to be displayed
+    local counter = 0
+
     -- randomly choose the number of rows
     local numRows = math.random(1, 5)
 
@@ -47,6 +53,17 @@ function LevelMaker.createMap(level)
     -- highest color of the highest tier, no higher than 5
     local highestColor = math.min(5, level % 5 + 3)
 
+    
+    -- initialized the argument on whether to draw a locked block in a specific area
+    local locked = math.random(2) == 1 and true or false
+
+
+    -- doesnt have a locked block at level 1
+    -- the maximum number of locked blocks increases every 3 levels
+    if level > 1 then
+            lockBlocks = math.min(5, math.floor(level/3))
+    end
+
     -- lay out bricks such that they touch each other and fill the space
     for y = 1, numRows do
         -- whether we want to enable skipping for this row
@@ -54,6 +71,20 @@ function LevelMaker.createMap(level)
 
         -- whether we want to enable alternating colors for this row
         local alternatePattern = math.random(1, 2) == 1 and true or false
+
+        -- when counter is greater than the maximum then no locked blocks are spawning anuymore
+        -- counts the number of current locked blocks
+        if counter < lockBlocks then
+            -- argument on whether to draw a locked block in a specific area
+            locked = math.random(2) == 1 and true or false
+
+            if locked then
+                counter = counter + 1                        
+            end
+
+        else
+            locked = false
+        end
         
         -- choose two colors to alternate between
         local alternateColor1 = math.random(1, highestColor)
@@ -95,23 +126,39 @@ function LevelMaker.createMap(level)
                 y * 16                  -- just use y * 16, since we need top padding anyway
             )
 
-            -- if we're alternating, figure out which color/tier we're on
-            if alternatePattern and alternateFlag then
-                b.color = alternateColor1
-                b.tier = alternateTier1
-                alternateFlag = not alternateFlag
+            -- draws the locked block and increases the counter as it is created
+            if locked then
+                b.locked = locked 
+
+                -- when counter is greater than the maximum then no locked blocks are spawning anuymore
+                if counter < lockBlocks then
+                    locked = math.random(2) == 1 and true or false
+                    if locked then
+                        counter = counter + 1                        
+                    end
+                else
+                    locked = false
+                end
+
+            -- draw the normal blocks if the block is not locked
             else
-                b.color = alternateColor2
-                b.tier = alternateTier2
-                alternateFlag = not alternateFlag
+                -- if we're alternating, figure out which color/tier we're on
+                if alternatePattern and alternateFlag then
+                    b.color = alternateColor1
+                    b.tier = alternateTier1
+                    alternateFlag = not alternateFlag
+                else
+                    b.color = alternateColor2
+                    b.tier = alternateTier2
+                    alternateFlag = not alternateFlag
+                end
+
+                -- if not alternating and we made it here, use the solid color/tier
+                if not alternatePattern then
+                    b.color = solidColor
+                    b.tier = solidTier
+                end                 
             end
-
-            -- if not alternating and we made it here, use the solid color/tier
-            if not alternatePattern then
-                b.color = solidColor
-                b.tier = solidTier
-            end 
-
             table.insert(bricks, b)
 
             -- Lua's version of the 'continue' statement

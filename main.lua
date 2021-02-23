@@ -67,7 +67,8 @@ function love.load()
         ['balls'] = GenerateQuadsBalls(gTextures['main']),
         ['bricks'] = GenerateQuadsBricks(gTextures['main']),
         ['hearts'] = GenerateQuads(gTextures['hearts'], 10, 9),
-        ['powerup'] = love.graphics.newQuad(128, 192, 16, 16, gTextures['main']:getDimensions())
+        ['powerup'] = love.graphics.newQuad(128, 192, 16, 16, gTextures['main']:getDimensions()),
+        ['locked-key'] = love.graphics.newQuad(144, 192, 16, 16, gTextures['main']:getDimensions())
     }
     
     -- initialize our virtual resolution, which will be rendered within our
@@ -190,7 +191,6 @@ end
 function love.draw()
     -- begin drawing with push, in our virtual resolution
     push:apply('start')
-
     -- background should be drawn regardless of state, scaled to fit our
     -- virtual resolution
     local backgroundWidth = gTextures['background']:getWidth()
